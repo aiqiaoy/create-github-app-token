@@ -52,6 +52,15 @@ assert.deepEqual(await auth({
   permissions: { issues: "write" },
 }), { token: "installation-token", expiresAt: "2026-11-10T12:00:00Z" });
 
+await createOidcAuth(clientId, core, request, "");
+process.env.GITHUB_SERVER_URL = "https://github.example.com";
+await createOidcAuth(clientId, {
+  async getIDToken(audience) {
+    assert.equal(audience, "https://github.example.com/login/oauth");
+    return "oidc-token";
+  },
+}, request);
+
 delete process.env.GITHUB_SERVER_URL;
 process.env.GITHUB_REPOSITORY = "actions/repo";
 const outputs = {};
@@ -110,10 +119,14 @@ Object.assign(process.env, DEFAULT_ENV, {
   "INPUT_PRIVATE-KEY": "",
   "INPUT_REPOSITORIES": "repo,another-repo",
   "INPUT_PERMISSION-ISSUES": "write",
+  INPUT_AUDIENCE: "api://custom-audience",
   ACTIONS_ID_TOKEN_REQUEST_URL: "https://oidc.example/token",
   ACTIONS_ID_TOKEN_REQUEST_TOKEN: "runner-token",
 });
-const oidcMock = mock.method(OidcClient, "getIDToken", core.getIDToken);
+const oidcMock = mock.method(OidcClient, "getIDToken", async (audience) => {
+  assert.equal(audience, "api://custom-audience");
+  return "oidc-token";
+});
 pool.intercept({
   path: `/repos/actions/repo/installation?client_id=${clientId}`,
   method: "GET",

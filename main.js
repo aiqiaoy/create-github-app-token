@@ -49,6 +49,7 @@ async function run() {
     createAppAuth,
     request,
     skipTokenRevoke,
+    core.getInput("audience"),
   );
 }
 

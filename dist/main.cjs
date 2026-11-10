@@ -23992,12 +23992,13 @@ async function pRetry(input, options = {}) {
 }
 
 // lib/create-oidc-auth.js
-async function createOidcAuth(clientId, core, request2) {
+async function createOidcAuth(clientId, core, request2, audience) {
   if (!process.env.ACTIONS_ID_TOKEN_REQUEST_URL || !process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN) {
     throw new Error("OIDC authentication requires 'id-token: write' workflow permissions. Alternatively, provide 'private-key'.");
   }
-  const audience = `${process.env.GITHUB_SERVER_URL || "https://github.com"}/login/oauth`;
-  const token = await core.getIDToken(audience);
+  const token = await core.getIDToken(
+    audience || `${process.env.GITHUB_SERVER_URL || "https://github.com"}/login/oauth`
+  );
   const auth5 = async ({ installationId, repositoryNames, permissions }) => {
     const { data } = await request2(
       "POST /app/installations/{installation_id}/access_tokens{?client_id}",
@@ -24023,7 +24024,7 @@ async function createOidcAuth(clientId, core, request2) {
 }
 
 // lib/main.js
-async function main(clientId, privateKey, enterprise, owner, repositories, permissions, core, createAppAuth2, request2, skipTokenRevoke) {
+async function main(clientId, privateKey, enterprise, owner, repositories, permissions, core, createAppAuth2, request2, skipTokenRevoke, audience) {
   if (enterprise && (owner || repositories.length > 0)) {
     throw new Error("Cannot use 'enterprise' input with 'owner' or 'repositories' inputs");
   }
@@ -24031,7 +24032,7 @@ async function main(clientId, privateKey, enterprise, owner, repositories, permi
     throw new Error("The 'enterprise' input requires 'private-key'; OIDC authentication is not supported for enterprise installations.");
   }
   const target = resolveInstallationTarget(enterprise, owner, repositories, core);
-  const auth5 = privateKey ? createAppAuth2({ appId: clientId, privateKey, request: request2 }) : await createOidcAuth(clientId, core, request2);
+  const auth5 = privateKey ? createAppAuth2({ appId: clientId, privateKey, request: request2 }) : await createOidcAuth(clientId, core, request2, audience);
   const { authentication, installationId, appSlug } = await pRetry(
     () => getTokenFromTarget(request2, auth5, target, permissions),
     createTokenRetryOptions(core, getTokenRetryDescription(target))
@@ -24269,7 +24270,8 @@ async function run() {
     core_exports,
     createAppAuth,
     request_default,
-    skipTokenRevoke
+    skipTokenRevoke,
+    getInput("audience")
   );
 }
 var main_default = run().catch((error2) => {

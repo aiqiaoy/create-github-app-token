@@ -42,7 +42,7 @@ jobs:
 
 Omit `private-key` to authenticate using GitHub Actions OIDC. You will need to add `id-token: write` permission to the workflow.
 
-GitHub App federated authentication must be enabled for your GitHub instance and App. The App must be private, owned by the organization running the workflow, and have a trust policy that accepts the workflow's issuer, repository, ref, event, and audience. This action requests the audience `${{ github.server_url }}/login/oauth` (`https://github.com/login/oauth` on github.com).
+GitHub App federated authentication must be enabled for your GitHub instance and App. The App must be private, owned by the organization running the workflow, and have a trust policy that accepts the workflow's issuer, repository, ref, event, and audience. By default, this action requests the audience `${{ github.server_url }}/login/oauth` (`https://github.com/login/oauth` on github.com). Set the optional `audience` input to override it with the audience expected by your trust policy.
 
 ```yaml
 on: [workflow_dispatch]
@@ -403,6 +403,18 @@ steps:
       client-id: ${{ vars.APP_CLIENT_ID }}
       private-key: ${{ steps.decode.outputs.private-key }}
 ```
+
+### `audience`
+
+Optional audience (`aud`) for the OIDC token. Defaults to `${{ github.server_url }}/login/oauth` when omitted or empty. Supply the value as plain text, not URL-encoded. Ignored when `private-key` is provided.
+
+```yaml
+with:
+  client-id: ${{ vars.APP_CLIENT_ID }}
+  audience: https://github.com/login/oauth
+```
+
+The audience must match the GitHub App's trust policy.
 
 ### `owner`
 
